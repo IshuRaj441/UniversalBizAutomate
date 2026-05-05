@@ -70,7 +70,7 @@ def create_app():
     # ----------------------------
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key")
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key")
     app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "jwt-dev-key")
     app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "uploads")
     app.config["OUTPUT_FOLDER"] = os.path.join(BASE_DIR, "outputs")
@@ -165,7 +165,7 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key")
 # ----------------------------
 if __name__ == "__main__":
     app = create_app()
-# Check for required tools - access the function from the app context
+    # Check for required tools - access the function from the app context
     with app.app_context():
         # Get system info by calling the function directly
         system_info = get_system_info()
