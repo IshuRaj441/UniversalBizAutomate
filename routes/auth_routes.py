@@ -51,10 +51,9 @@ def register():
         return jsonify({'message': 'Email already registered'}), 400
         
     # Create new user
-    hashed_password = generate_password_hash(data['password'], method='sha256')
     new_user = User(
         email=data['email'],
-        password=hashed_password,
+        password=data['password'],  # Let User model handle password hashing
         credits=10,  # Initial credits for new users
         is_admin=False
     )
