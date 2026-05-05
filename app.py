@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 from extensions import db, migrate
@@ -88,6 +88,7 @@ def create_app():
 
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(BASE_DIR, 'instance/app.db')}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["ALLOWED_EXTENSIONS"] = ALLOWED_EXTENSIONS
 
     # ----------------------------
     # Init Extensions
