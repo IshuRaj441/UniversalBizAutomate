@@ -1,6 +1,7 @@
 import { login, register, getUserProfile } from './api';
 import React, { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import config from './config';
 
 interface User {
   id: number;
@@ -17,21 +18,21 @@ type AuthResponse = {
 // Save user data to localStorage
 export const saveUser = (userData: AuthResponse) => {
   if (userData?.token) {
-    localStorage.setItem('token', userData.token);
-    localStorage.setItem('user', JSON.stringify(userData.user));
+    localStorage.setItem(config.auth.tokenKey, userData.token);
+    localStorage.setItem(config.auth.userKey, JSON.stringify(userData.user));
   }
 };
 
 // Get current user from localStorage
-export const getCurrentUser = (): User | null => {
+export const getCurrentUserFromStorage = (): User | null => {
   if (typeof window === 'undefined') return null;
-  const user = localStorage.getItem('user');
+  const user = localStorage.getItem(config.auth.userKey);
   return user ? JSON.parse(user) as User : null;
 };
 
 // Get auth token
 export const getToken = (): string | null => {
-  return localStorage.getItem('token');
+  return localStorage.getItem(config.auth.tokenKey);
 };
 
 // Check if user is authenticated
@@ -41,7 +42,7 @@ export const isAuthenticated = (): boolean => {
 
 // Check if user is admin
 export const isAdmin = (): boolean => {
-  const user = getCurrentUser();
+  const user = getCurrentUserFromStorage();
   return user?.is_admin === true;
 };
 
@@ -61,8 +62,8 @@ export const registerUser = async (email: string, password: string): Promise<Use
 
 // Logout user
 export const logout = (navigate?: (path: string) => void): void => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
+  localStorage.removeItem(config.auth.tokenKey);
+  localStorage.removeItem(config.auth.userKey);
   if (navigate) {
     navigate('/login');
   } else {
@@ -75,7 +76,7 @@ export const fetchUserProfile = async () => {
   try {
     const user = await getUserProfile();
     if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem(config.auth.userKey, JSON.stringify(user));
     }
     return user;
   } catch (error) {

@@ -1,15 +1,15 @@
-const API_BASE = "https://universar-bussiness-automation.onrender.com/api";
+import config from './config';
 
 // Helper function to handle API requests
 async function apiRequest(endpoint: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem(config.auth.tokenKey);
   const headers = {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
     ...options.headers,
   };
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  const response = await fetch(`${config.api.baseUrl}${endpoint}`, {
     ...options,
     headers,
   });
@@ -55,9 +55,9 @@ export async function convertFile(endpoint: string, file: File) {
   const formData = new FormData();
   formData.append('file', file);
 
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem(config.auth.tokenKey);
   
-  const response = await fetch(`${API_BASE}/files/${endpoint}`, {
+  const response = await fetch(`${config.api.baseUrl}/files/${endpoint}`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,

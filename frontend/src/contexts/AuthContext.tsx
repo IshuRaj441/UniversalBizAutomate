@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { register as apiRegister, login as apiLogin, getCurrentUser } from '../api/auth';
+import config from '../config';
 
 interface User {
   id: number;
@@ -18,22 +19,20 @@ interface AuthContextType {
   error: string | null;
 }
 
-// ... rest of the file remains the same ...
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(localStorage.getItem(config.auth.tokenKey));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Handle token storage
   useEffect(() => {
     if (token) {
-      localStorage.setItem('token', token);
+      localStorage.setItem(config.auth.tokenKey, token);
     } else {
-      localStorage.removeItem('token');
+      localStorage.removeItem(config.auth.tokenKey);
     }
   }, [token]);
 
@@ -93,7 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
+    localStorage.removeItem(config.auth.tokenKey);
+    localStorage.removeItem(config.auth.userKey);
   };
 
   const value = {

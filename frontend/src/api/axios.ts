@@ -1,11 +1,10 @@
 import axios from 'axios';
-
-const API_BASE_URL = 'https://universar-bussiness-automation.onrender.com/api';
+import appConfig from '../config';
 
 // Create axios instance with default configuration
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
+  baseURL: appConfig.api.baseUrl,
+  timeout: appConfig.api.timeout,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -14,12 +13,12 @@ const api = axios.create({
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
+  (axiosConfig) => {
+    const token = localStorage.getItem(appConfig.auth.tokenKey);
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      axiosConfig.headers.Authorization = `Bearer ${token}`;
     }
-    return config;
+    return axiosConfig;
   },
   (error) => {
     return Promise.reject(error);
@@ -32,7 +31,8 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid
-      localStorage.removeItem('token');
+      localStorage.removeItem(appConfig.auth.tokenKey);
+      localStorage.removeItem(appConfig.auth.userKey);
       window.location.href = '/login';
     }
     return Promise.reject(error);
