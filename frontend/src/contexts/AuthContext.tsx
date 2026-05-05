@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';  // Added this import
 import { register as apiRegister, login as apiLogin, getCurrentUser } from '../api/auth';
 
 interface User {
@@ -29,14 +28,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Set up axios defaults
+  // Handle token storage
   useEffect(() => {
     if (token) {
       localStorage.setItem('token', token);
-      // Set default auth header for axios
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } else {
-      delete axios.defaults.headers.common['Authorization'];
       localStorage.removeItem('token');
     }
   }, [token]);

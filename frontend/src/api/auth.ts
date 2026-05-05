@@ -1,6 +1,6 @@
-import axios from 'axios';
+import api from './axios';
 
-const API_URL = 'https://universar-bussinesss-automation.onrender.com/api/auth';
+const API_URL = '/auth';
 
 export interface AuthResponse {
   token: string;
@@ -13,7 +13,7 @@ export interface AuthResponse {
 }
 
 export const register = async (email: string, password: string): Promise<AuthResponse> => {
-  const response = await axios.post(`${API_URL}/register`, {
+  const response = await api.post(`${API_URL}/register`, {
     email,
     password,
   });
@@ -21,7 +21,7 @@ export const register = async (email: string, password: string): Promise<AuthRes
 };
 
 export const login = async (email: string, password: string): Promise<AuthResponse> => {
-  const response = await axios.post(`${API_URL}/login`, {
+  const response = await api.post(`${API_URL}/login`, {
     email,
     password,
   });
@@ -29,10 +29,6 @@ export const login = async (email: string, password: string): Promise<AuthRespon
 };
 
 export const getCurrentUser = async (token: string) => {
-  const response = await axios.get(`${API_URL}/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await api.get(`${API_URL}/me`);
   return response.data;
 };

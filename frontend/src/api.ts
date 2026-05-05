@@ -1,4 +1,4 @@
-const API_BASE = "https://universar-bussinesss-automation.onrender.com/api";
+const API_BASE = "https://universar-bussiness-automation.onrender.com/api";
 
 // Helper function to handle API requests
 async function apiRequest(endpoint: string, options: RequestInit = {}) {

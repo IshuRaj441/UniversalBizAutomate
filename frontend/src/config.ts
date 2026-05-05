@@ -1,6 +1,6 @@
 const config = {
   api: {
-    baseUrl: 'https://universar-bussinesss-automation.onrender.com/api',
+    baseUrl: 'http://127.0.0.1:5000/api',
   },
 };
 
