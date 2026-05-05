@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 from extensions import db, migrate
-from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 import subprocess
 import uuid
@@ -63,15 +62,23 @@ def get_system_info():
 # ----------------------------
 def create_app():
     app = Flask(__name__)
-    CORS(app)
-
+    
+    # CORS configuration - allow specific origins including localhost:3001
+    CORS(app, 
+         origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3003", "https://universar-bussiness-automation.onrender.com"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+         supports_credentials=False,
+         max_age=600)
+    
+    
     # ----------------------------
     # Config
     # ----------------------------
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key")
-    app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "jwt-dev-key")
+    app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "dev-key-change-in-production-123")
     app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "uploads")
     app.config["OUTPUT_FOLDER"] = os.path.join(BASE_DIR, "outputs")
 
@@ -103,19 +110,19 @@ def create_app():
         if not User.query.filter_by(email="admin@example.com").first():
             admin = User(
                 email="admin@example.com",
-                password=generate_password_hash("admin123"),
                 credits=1000,
                 is_admin=True
             )
+            admin.password = "admin123"
             db.session.add(admin)
 
         if not User.query.filter_by(email="raji53681@gmail.com").first():
             test = User(
                 email="raji53681@gmail.com",
-                password=generate_password_hash("test123"),
                 credits=100,
                 is_admin=False
             )
+            test.password = "test123"
             db.session.add(test)
 
         db.session.commit()

@@ -2,7 +2,6 @@
 Authentication Routes for Universal Business Automation
 """
 from flask import Blueprint, request, jsonify, current_app
-from werkzeug.security import generate_password_hash
 from datetime import datetime, timedelta
 import jwt
 from functools import wraps
@@ -133,3 +132,14 @@ def login():
         import traceback
         traceback.print_exc()
         return jsonify({'message': 'An unexpected error occurred during login'}), 500
+
+@auth_bp.route('/me', methods=['GET'])
+@token_required
+def get_current_user(current_user):
+    """Get current user information"""
+    return jsonify({
+        'id': current_user.id,
+        'email': current_user.email,
+        'credits': current_user.credits,
+        'is_admin': current_user.is_admin
+    })
