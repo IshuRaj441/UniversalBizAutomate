@@ -56,3 +56,7 @@ yarn-error.log*
 /frontend/.env.development.local
 /frontend/.env.test.local
 /frontend/.env.production.local
+
+# Generated output files
+/outputs/*
+!/outputs/.gitkeep

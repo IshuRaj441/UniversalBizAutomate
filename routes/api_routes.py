@@ -7,6 +7,7 @@ import subprocess
 from datetime import datetime
 from flask import Blueprint, jsonify, request, send_file, current_app
 from werkzeug.utils import secure_filename
+from werkzeug.datastructures import FileStorage
 
 # Create blueprint
 api_bp = Blueprint('api', __name__)
@@ -194,6 +195,22 @@ def get_tools():
                 'input': ['tex'],
                 'output': 'pdf',
                 'enabled': True
+            },
+            {
+                'id': 'merge-pdf',
+                'name': 'Merge PDFs',
+                'description': 'Combine multiple PDF files into a single PDF',
+                'input': ['pdf'],
+                'output': 'pdf',
+                'enabled': True
+            },
+            {
+                'id': 'merge-images',
+                'name': 'Merge Images to PDF',
+                'description': 'Combine multiple image files into a single PDF',
+                'input': ['jpg', 'jpeg', 'png', 'bmp', 'tiff'],
+                'output': 'pdf',
+                'enabled': True
             }
         ]
     })
@@ -208,6 +225,16 @@ def convert():
     print(f"Request form: {dict(request.form)}")
     print(f"Request data length: {len(request.data) if request.data else 0}")
     
+    action = request.form.get('action')
+    
+    if not action:
+        return jsonify({'error': 'No action specified'}), 400
+    
+    # Handle merge actions (multiple files)
+    if action in ['merge-pdf', 'merge-images']:
+        return handle_merge_request(action)
+    
+    # Handle single file conversions (existing logic)
     # Check if the post request has the file part
     if 'file' not in request.files:
         print("ERROR: 'file' not in request.files")
@@ -604,6 +631,231 @@ def convert():
             }), 500
             
     return jsonify({'error': 'File type not allowed'}), 400
+
+def handle_merge_request(action):
+    """Handle PDF merge and Image merge to PDF requests"""
+    print(f"Handling merge request: {action}")
+    
+    # Get uploaded files
+    files = request.files.getlist('files')
+    
+    if not files or len(files) < 2:
+        return jsonify({'error': 'At least 2 files are required for merging'}), 400
+    
+    # Validate files
+    valid_files = []
+    for file in files:
+        if file.filename == '':
+            continue
+            
+        if not allowed_file(file.filename):
+            return jsonify({'error': f'Invalid file type: {file.filename}'}), 400
+        
+        # Additional validation using MIME type
+        if not validate_file_type(file.filename, file.mimetype):
+            return jsonify({'error': f'Invalid file type. File {file.filename} does not match its MIME type {file.mimetype}'}), 400
+        
+        # Validate file type based on action
+        file_ext = file.filename.rsplit('.', 1)[1].lower()
+        
+        if action == 'merge-pdf' and file_ext != 'pdf':
+            return jsonify({'error': f'Only PDF files are allowed for PDF merge: {file.filename}'}), 400
+        
+        if action == 'merge-images' and file_ext not in ['jpg', 'jpeg', 'png', 'bmp', 'tiff']:
+            return jsonify({'error': f'Only image files are allowed for image merge: {file.filename}'}), 400
+        
+        valid_files.append(file)
+    
+    if len(valid_files) < 2:
+        return jsonify({'error': 'At least 2 valid files are required for merging'}), 400
+    
+    # Generate unique filename for merged output
+    file_id = str(uuid.uuid4())
+    
+    # Ensure output directory exists
+    if not os.path.exists(current_app.config['OUTPUT_FOLDER']):
+        os.makedirs(current_app.config['OUTPUT_FOLDER'])
+    
+    # Save uploaded files temporarily
+    temp_files = []
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    
+    try:
+        for file in valid_files:
+            file_ext = file.filename.rsplit('.', 1)[1].lower()
+            temp_filename = f"{file_id}_{len(temp_files)}.{file_ext}"
+            temp_path = os.path.join(upload_folder, temp_filename)
+            file.save(temp_path)
+            temp_files.append(temp_path)
+            print(f"Saved temporary file: {temp_path}")
+        
+        # Perform merge based on action
+        if action == 'merge-pdf':
+            output_filename = merge_pdfs(temp_files, file_id)
+        elif action == 'merge-images':
+            output_filename = merge_images_to_pdf(temp_files, file_id)
+        else:
+            return jsonify({'error': 'Invalid merge action'}), 400
+        
+        # Clean up temp files
+        for temp_file in temp_files:
+            try:
+                os.remove(temp_file)
+            except:
+                pass
+        
+        return jsonify({
+            'success': True,
+            'message': 'Merge successful',
+            'file_id': file_id,
+            'download_url': f"/api/download/{output_filename}"
+        })
+        
+    except Exception as e:
+        # Clean up temp files on error
+        for temp_file in temp_files:
+            try:
+                os.remove(temp_file)
+            except:
+                pass
+        
+        print(f"Merge failed: {str(e)}")
+        return jsonify({
+            'error': 'Merge failed',
+            'details': str(e)
+        }), 500
+
+def merge_pdfs(pdf_files, file_id):
+    """Merge multiple PDF files into one"""
+    try:
+        from PyPDF2 import PdfMerger
+        
+        merger = PdfMerger()
+        
+        # Add each PDF to the merger
+        for pdf_file in pdf_files:
+            print(f"Adding PDF to merger: {pdf_file}")
+            merger.append(pdf_file)
+        
+        # Save merged PDF
+        output_filename = f"{file_id}_merged.pdf"
+        output_path = os.path.join(current_app.config['OUTPUT_FOLDER'], output_filename)
+        
+        merger.write(output_path)
+        merger.close()
+        
+        # Verify file was created
+        if not os.path.exists(output_path):
+            raise Exception("Merged PDF file was not created")
+        
+        file_size = os.path.getsize(output_path)
+        if file_size == 0:
+            raise Exception("Merged PDF file is empty")
+        
+        print(f"PDF merge successful: {output_filename} ({file_size} bytes)")
+        return output_filename
+        
+    except ImportError:
+        raise Exception("PyPDF2 library is required for PDF merging")
+    except Exception as e:
+        raise Exception(f"PDF merge failed: {str(e)}")
+
+def merge_images_to_pdf(image_files, file_id):
+    """Merge multiple image files into one PDF"""
+    try:
+        from PIL import Image
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import letter
+        
+        output_filename = f"{file_id}_merged.pdf"
+        output_path = os.path.join(current_app.config['OUTPUT_FOLDER'], output_filename)
+        
+        # Create PDF canvas
+        c = canvas.Canvas(output_path, pagesize=letter)
+        page_width, page_height = letter
+        
+        # Process each image
+        for i, image_file in enumerate(image_files):
+            print(f"Adding image to PDF: {image_file}")
+            
+            # Add new page for each image except the first one
+            if i > 0:
+                c.showPage()
+            
+            # Open and process image
+            img = Image.open(image_file)
+            
+            # Convert to RGB if necessary
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Get image dimensions
+            img_width, img_height = img.size
+            
+            # Calculate scaling to fit image on page (90% of page)
+            scale = min(page_width / img_width, page_height / img_height) * 0.9
+            scaled_width = img_width * scale
+            scaled_height = img_height * scale
+            
+            # Center the image on the page
+            x = (page_width - scaled_width) / 2
+            y = (page_height - scaled_height) / 2
+            
+            # Draw the image
+            c.drawImage(image_file, x, y, scaled_width, scaled_height)
+        
+        c.save()
+        
+        # Verify file was created
+        if not os.path.exists(output_path):
+            raise Exception("Merged PDF file was not created")
+        
+        file_size = os.path.getsize(output_path)
+        if file_size == 0:
+            raise Exception("Merged PDF file is empty")
+        
+        print(f"Image to PDF merge successful: {output_filename} ({file_size} bytes)")
+        return output_filename
+        
+    except ImportError:
+        # Fallback to PIL-only method if ReportLab is not available
+        try:
+            from PIL import Image
+            
+            output_filename = f"{file_id}_merged.pdf"
+            output_path = os.path.join(current_app.config['OUTPUT_FOLDER'], output_filename)
+            
+            # Create a list to hold all images
+            images = []
+            
+            for image_file in image_files:
+                img = Image.open(image_file)
+                
+                # Convert to RGB if necessary
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                images.append(img)
+            
+            # Save first image as PDF and append others
+            if images:
+                images[0].save(output_path, "PDF", resolution=100.0, save_all=True, append_images=images[1:])
+            
+            # Verify file was created
+            if not os.path.exists(output_path):
+                raise Exception("Merged PDF file was not created")
+            
+            file_size = os.path.getsize(output_path)
+            if file_size == 0:
+                raise Exception("Merged PDF file is empty")
+            
+            print(f"Image to PDF merge successful with PIL: {output_filename} ({file_size} bytes)")
+            return output_filename
+            
+        except ImportError:
+            raise Exception("Neither ReportLab nor PIL available for image to PDF merging")
+    except Exception as e:
+        raise Exception(f"Image to PDF merge failed: {str(e)}")
 
 @api_bp.route('/download/<path:filename>')
 def download_file(filename):
