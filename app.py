@@ -13,7 +13,7 @@ from routes.api_routes import api_bp
 from models.user import User
 
 # Allowed file extensions for file upload
-ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'bmp', 'tiff'}
 
 def get_system_info():
     """Get system information including installed tools"""

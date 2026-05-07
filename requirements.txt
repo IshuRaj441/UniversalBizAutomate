@@ -21,6 +21,7 @@ pytesseract==0.3.10
 
 # Image processing
 Pillow>=10.0,<11
+reportlab>=3.6.0
 
 # Core dependencies
 Werkzeug==2.3.7

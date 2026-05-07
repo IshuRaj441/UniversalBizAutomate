@@ -38,20 +38,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Load user data when token changes
   useEffect(() => {
+    let isMounted = true;
+    
     const loadUser = async () => {
       if (token) {
         try {
           const userData = await getCurrentUser(token);
-          setUser(userData);
+          if (isMounted) {
+            setUser(userData);
+          }
         } catch (err) {
-          console.error('Failed to load user', err);
-          setToken(null);
+          if (isMounted) {
+            console.error('Failed to load user', err);
+            setToken(null);
+          }
         }
       }
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     };
 
     loadUser();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [token]);
 
   const handleAuthResponse = (response: any) => {

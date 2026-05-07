@@ -31,15 +31,32 @@ import {
   Error as ErrorIcon,
   Download as DownloadIcon,
   SwapVert as ConvertIcon,
+  Slideshow as PptIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../api/axios';
 
 interface FileWithPreview extends File {
+  id: string;
   preview?: string;
   status: 'uploading' | 'converting' | 'completed' | 'error';
   error?: string;
   downloadUrl?: string;
   outputFormat?: string;
+  action?: string;
+}
+
+interface FileState {
+  file: File;
+  name: string;
+  size: number;
+  type: string;
+  status: 'ready' | 'uploading' | 'converting' | 'completed' | 'error';
+  downloadUrl?: string;
+  error?: string;
+  outputFormat?: string;
+  action?: string;
+  preview?: string;
 }
 
 const SUPPORTED_FORMATS = {
@@ -57,19 +74,19 @@ const SUPPORTED_FORMATS = {
     icon: <PdfIcon />,
     color: '#d24726',
   },
-  'ppt-to-pdf': {
-    label: 'PowerPoint to PDF',
+  'ppt-to-docx': {
+    label: 'PowerPoint to Word',
     input: ['.ppt', '.pptx'],
+    output: '.docx',
+    icon: <WordIcon />,
+    color: '#2b579a',
+  },
+  'image-to-pdf': {
+    label: 'Image to PDF',
+    input: ['.jpg', '.jpeg', '.png', '.bmp', '.tiff'],
     output: '.pdf',
     icon: <PdfIcon />,
     color: '#d24726',
-  },
-  'ocr': {
-    label: 'Image to Text (OCR)',
-    input: ['.jpg', '.jpeg', '.png', '.bmp', '.tiff'],
-    output: '.txt',
-    icon: <ImageIcon />,
-    color: '#4caf50',
   },
 };
 
@@ -79,32 +96,70 @@ const FileConverter: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<ConversionType>('pdf-to-docx');
   const [files, setFiles] = useState<FileWithPreview[]>([]);
+  const [fileState, setFileState] = useState<FileState | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+
+    setFileState({
+      file: selected,
+      name: selected.name,
+      size: selected.size,
+      type: selected.type,
+      status: "ready",
+      action: activeTab.replace(/-/g, '_'),
+      preview: selected.type.startsWith('image/') ? URL.createObjectURL(selected) : undefined
+    });
+
+    console.log("Selected file:", selected);
+  };
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
+    console.log('onDrop called with files:', acceptedFiles);
     if (!acceptedFiles.length) return;
 
-    const newFiles = acceptedFiles.map(file => ({
-      ...file,
-      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
-      status: 'uploading' as const,
-    }));
+    const selected = acceptedFiles[0];
+    handleFileChange({
+      target: { files: [selected] }
+    } as unknown as React.ChangeEvent<HTMLInputElement>);
 
-    setFiles(prevFiles => [...prevFiles, ...newFiles]);
-    
-    // Simulate upload completion
-    setTimeout(() => {
-      setFiles(prevFiles =>
-        prevFiles.map(f => 
-          newFiles.some(nf => nf.name === f.name && nf.size === f.size)
-            ? { ...f, status: 'converting' as const }
-            : f
-        )
-      );
-    }, 1000);
-  }, []);
+    const newFiles = acceptedFiles.map(file => {
+      console.log('Processing file:', file.name, file.size, file.type);
+      const fileWithPreview = Object.assign(file, {
+        id: Math.random().toString(36).substr(2, 9),
+        preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+        status: 'uploading' as const,
+        action: activeTab.replace(/-/g, '_'),
+      });
+      return fileWithPreview as FileWithPreview;
+    });
+
+    console.log('New files to add:', newFiles);
+    setFiles(prevFiles => {
+      const updated = [...prevFiles, ...newFiles];
+      console.log('Updated files state:', updated);
+      return updated;
+    });
+  }, [activeTab]);
+
+  const getTargetFormat = (action: string) => {
+    switch (action) {
+      case "pdf-to-docx":
+        return "DOCX";
+      case "docx-to-pdf":
+        return "PDF";
+      case "ppt-to-docx":
+        return "DOCX";
+      case "image-to-pdf":
+        return "PDF";
+      default:
+        return "FILE";
+    }
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -122,34 +177,141 @@ const FileConverter: React.FC = () => {
   });
 
   const handleConvert = async () => {
-    if (files.length === 0) return;
+    console.log('Convert button clicked!');
+    console.log('Current files state:', files);
     
+    if (files.length === 0) {
+      console.log('No files to convert');
+      alert('Please select a file first');
+      return;
+    }
+    
+    console.log('Starting conversion process...');
     setIsConverting(true);
     setError(null);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Update files with mock conversion results
+      // Update all files to converting status
       setFiles(prevFiles =>
         prevFiles.map(file => ({
           ...file,
-          status: 'completed' as const,
-          downloadUrl: 'https://example.com/converted-file', // In a real app, this would come from the API
-          outputFormat: SUPPORTED_FORMATS[activeTab].output,
+          status: 'converting' as const,
         }))
       );
+
+      // Convert each file
+      const conversionPromises = files.map(async (file) => {
+        try {
+          const formData = new FormData();
+          console.log('File details:', {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified
+          });
+          formData.append('file', file);
+          // Map frontend actions to backend actions
+          const actionMap: Record<string, string> = {
+            'pdf_to_docx': 'pdf_to_word',
+            'docx_to_pdf': 'word_to_pdf',
+            'ppt_to_docx': 'ppt_to_docx',
+            'image_to_pdf': 'image_to_pdf'
+          };
+          
+          console.log('activeTab:', activeTab);
+          console.log('file.action:', file.action);
+          const originalAction = file.action || activeTab.replace(/-/g, '_');
+          const action = actionMap[originalAction] || originalAction;
+          
+          console.log('Original action:', originalAction);
+          console.log('Mapped action:', action);
+          console.log('Available actions:', Object.keys(actionMap));
+          
+          // Ensure we're sending a valid backend action
+          const validActions = ['pdf_to_word', 'word_to_pdf', 'ppt_to_docx', 'image_to_pdf', 'pdf_to_jpeg', 'pdf_to_latex', 'latex_to_pdf'];
+          const finalAction = validActions.includes(action) ? action : 'pdf_to_word'; // fallback
+          
+          console.log('Final action being sent:', finalAction);
+          formData.append('action', finalAction);
+
+          const response = await api.post('/convert', formData, {
+            headers: {
+              'Content-Type': undefined,
+            },
+          });
+          
+          console.log('API response:', response.data);
+
+          return {
+            file,
+            success: true,
+            data: response.data,
+          };
+        } catch (error) {
+          console.error('Conversion error for file:', file.name, error);
+          
+          // Type guard for axios error
+          if (error && typeof error === 'object' && 'response' in error) {
+            const axiosError = error as any;
+            console.error('Error response:', axiosError.response?.data);
+            console.error('Error status:', axiosError.response?.status);
+            return {
+              file,
+              success: false,
+              error: axiosError.response?.data?.error || (error instanceof Error ? error.message : 'Conversion failed'),
+            };
+          }
+          
+          return {
+            file,
+            success: false,
+            error: error instanceof Error ? error.message : 'Conversion failed',
+          };
+        }
+      });
+
+      const results = await Promise.all(conversionPromises);
       
-      // Deduct credits based on conversion type
-      // In a real app, this would be handled by the backend
-      const creditsToDeduct = activeTab === 'ocr' ? 2 : 1;
-      console.log(`Deducting ${creditsToDeduct} credits`);
+      console.log('Conversion results:', results);
+
+      // Update files with conversion results
+      setFiles(prevFiles => {
+        console.log('Previous files state:', prevFiles);
+        const updatedFiles = prevFiles.map(file => {
+          const result = results.find(r => r.file.id === file.id);
+          if (result) {
+            if (result.success) {
+              console.log('Updating file status to completed:', file.name);
+              console.log('Backend download_url:', result.data.download_url);
+              const baseUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
+              const finalUrl = `${baseUrl}${result.data.download_url}`;
+              console.log('Base URL:', baseUrl);
+              console.log('Final download URL:', finalUrl);
+              return {
+                ...file,
+                status: 'completed' as const,
+                downloadUrl: finalUrl,
+                outputFormat: SUPPORTED_FORMATS[activeTab].output,
+              };
+            } else {
+              console.log('Updating file status to error:', file.name);
+              return {
+                ...file,
+                status: 'error' as const,
+                error: result.error,
+              };
+            }
+          }
+          return file;
+        });
+        console.log('Updated files state:', updatedFiles);
+        return updatedFiles;
+      });
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Conversion failed');
       
-      // Update files with error status
+      // Update all files with error status
       setFiles(prevFiles =>
         prevFiles.map(file => ({
           ...file,
@@ -172,7 +334,8 @@ const FileConverter: React.FC = () => {
     // In a real app, this would trigger the download
     const link = document.createElement('a');
     link.href = file.downloadUrl;
-    link.download = `${file.name.split('.')[0]}${file.outputFormat || ''}`;
+    const baseName = file.name ? file.name.split('.')[0] : 'converted-file';
+    link.download = `${baseName}${file.outputFormat || ''}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -194,8 +357,8 @@ const FileConverter: React.FC = () => {
     };
   }, [files]);
 
-  const formatBytes = (bytes: number, decimals = 2) => {
-    if (bytes === 0) return '0 Bytes';
+  const formatBytes = (bytes: number | undefined, decimals = 2) => {
+    if (bytes === undefined || bytes === 0) return '0 Bytes';
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -204,6 +367,7 @@ const FileConverter: React.FC = () => {
   };
 
   const getFileIcon = (fileName: string) => {
+    if (!fileName) return <FileIcon />;
     const ext = fileName.split('.').pop()?.toLowerCase();
     switch (ext) {
       case 'pdf':
@@ -213,7 +377,7 @@ const FileConverter: React.FC = () => {
         return <WordIcon />;
       case 'ppt':
       case 'pptx':
-        return <WordIcon />; // Using WordIcon as a placeholder for PPT
+        return <PptIcon />; // Using Slideshow icon for PowerPoint
       case 'jpg':
       case 'jpeg':
       case 'png':
@@ -288,7 +452,7 @@ const FileConverter: React.FC = () => {
         <Typography variant="body2" color="textSecondary" paragraph>
           Supported formats: {acceptedFiles.toUpperCase()}
         </Typography>
-        <Button variant="contained" color="primary">
+        <Button variant="contained" color="primary" onClick={() => fileInputRef.current?.click()}>
           Select Files
         </Button>
       </Paper>
@@ -311,10 +475,13 @@ const FileConverter: React.FC = () => {
                 variant="contained"
                 color="primary"
                 startIcon={isConverting ? <CircularProgress size={20} color="inherit" /> : <ConvertIcon />}
-                onClick={handleConvert}
+                onClick={() => {
+                  console.log('Convert button clicked directly!');
+                  handleConvert();
+                }}
                 disabled={isConverting}
               >
-                {isConverting ? 'Converting...' : `Convert to ${currentFormat.output.toUpperCase()}`}
+                {isConverting ? 'Converting...' : `Convert to ${getTargetFormat(activeTab)}`}
               </Button>
             </Box>
             
@@ -344,11 +511,11 @@ const FileConverter: React.FC = () => {
                       </Box>
                       <Box flexGrow={1} minWidth={0}>
                         <Typography variant="subtitle2" noWrap>
-                          {file.name}
+                          {fileState?.name || file?.name || 'Unknown file'}
                         </Typography>
                         <Box display="flex" alignItems="center" flexWrap="wrap" mt={0.5}>
                           <Typography variant="caption" color="textSecondary" sx={{ mr: 1 }}>
-                            {formatBytes(file.size)}
+                            {fileState?.size ? `${(fileState.size / 1024).toFixed(2)} KB` : formatBytes(file?.size)}
                           </Typography>
                           {file.status === 'completed' && (
                             <Chip

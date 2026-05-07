@@ -29,6 +29,10 @@ export const login = async (email: string, password: string): Promise<AuthRespon
 };
 
 export const getCurrentUser = async (token: string) => {
-  const response = await api.get(`${API_URL}/me`);
+  const response = await api.get(`${API_URL}/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
   return response.data;
 };
