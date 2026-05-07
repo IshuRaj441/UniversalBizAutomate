@@ -88,6 +88,20 @@ const SUPPORTED_FORMATS = {
     icon: <PdfIcon />,
     color: '#d24726',
   },
+  'merge-pdf': {
+    label: 'Merge PDFs',
+    input: ['.pdf'],
+    output: '.pdf',
+    icon: <PdfIcon />,
+    color: '#d24726',
+  },
+  'merge-images': {
+    label: 'Merge Images to PDF',
+    input: ['.jpg', '.jpeg', '.png', '.bmp', '.tiff'],
+    output: '.pdf',
+    icon: <PdfIcon />,
+    color: '#d24726',
+  },
 };
 
 type ConversionType = keyof typeof SUPPORTED_FORMATS;
@@ -156,6 +170,10 @@ const FileConverter: React.FC = () => {
         return "DOCX";
       case "image-to-pdf":
         return "PDF";
+      case "merge-pdf":
+        return "PDF";
+      case "merge-images":
+        return "PDF";
       default:
         return "FILE";
     }
@@ -163,16 +181,20 @@ const FileConverter: React.FC = () => {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/vnd.ms-powerpoint': ['.ppt'],
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
-      'image/jpeg': ['.jpg', '.jpeg'],
-      'image/png': ['.png'],
-      'image/bmp': ['.bmp'],
-      'image/tiff': ['.tiff'],
-    },
+    accept: activeTab === 'merge-pdf' 
+      ? { 'application/pdf': ['.pdf'] }
+      : activeTab === 'merge-images'
+      ? { 'image/jpeg': ['.jpg', '.jpeg'], 'image/png': ['.png'], 'image/bmp': ['.bmp'], 'image/tiff': ['.tiff'] }
+      : {
+          'application/pdf': ['.pdf'],
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+          'application/vnd.ms-powerpoint': ['.ppt'],
+          'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+          'image/jpeg': ['.jpg', '.jpeg'],
+          'image/png': ['.png'],
+          'image/bmp': ['.bmp'],
+          'image/tiff': ['.tiff'],
+        },
     multiple: true,
   });
 
@@ -182,7 +204,7 @@ const FileConverter: React.FC = () => {
     
     if (files.length === 0) {
       console.log('No files to convert');
-      alert('Please select a file first');
+      alert('Please select files first');
       return;
     }
     
@@ -199,115 +221,176 @@ const FileConverter: React.FC = () => {
         }))
       );
 
-      // Convert each file
-      const conversionPromises = files.map(async (file) => {
-        try {
-          const formData = new FormData();
-          console.log('File details:', {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            lastModified: file.lastModified
-          });
-          formData.append('file', file);
-          // Map frontend actions to backend actions
-          const actionMap: Record<string, string> = {
-            'pdf_to_docx': 'pdf_to_word',
-            'docx_to_pdf': 'word_to_pdf',
-            'ppt_to_docx': 'ppt_to_docx',
-            'image_to_pdf': 'image_to_pdf'
-          };
-          
-          console.log('activeTab:', activeTab);
-          console.log('file.action:', file.action);
-          const originalAction = file.action || activeTab.replace(/-/g, '_');
-          const action = actionMap[originalAction] || originalAction;
-          
-          console.log('Original action:', originalAction);
-          console.log('Mapped action:', action);
-          console.log('Available actions:', Object.keys(actionMap));
-          
-          // Ensure we're sending a valid backend action
-          const validActions = ['pdf_to_word', 'word_to_pdf', 'ppt_to_docx', 'image_to_pdf', 'pdf_to_jpeg', 'pdf_to_latex', 'latex_to_pdf'];
-          const finalAction = validActions.includes(action) ? action : 'pdf_to_word'; // fallback
-          
-          console.log('Final action being sent:', finalAction);
-          formData.append('action', finalAction);
+      // Check if this is a merge action
+      const originalAction = activeTab.replace(/-/g, '_');
+      const actionMap: Record<string, string> = {
+        'pdf_to_docx': 'pdf_to_word',
+        'docx_to_pdf': 'word_to_pdf',
+        'ppt_to_docx': 'ppt_to_docx',
+        'image_to_pdf': 'image_to_pdf',
+        'merge_pdf': 'merge-pdf',
+        'merge_images': 'merge-images'
+      };
+      const action = actionMap[originalAction] || originalAction;
+      
+      // For merge actions, require at least 2 files
+      if ((action === 'merge-pdf' || action === 'merge-images') && files.length < 2) {
+        console.log('Not enough files for merge');
+        alert('Please select at least 2 files to merge');
+        setIsConverting(false);
+        return;
+      }
 
-          const response = await api.post('/convert', formData, {
-            headers: {
-              'Content-Type': undefined,
-            },
+      // Handle merge actions (multiple files in one request)
+      if (action === 'merge-pdf' || action === 'merge-images') {
+        console.log('Processing merge action with multiple files');
+        
+        const formData = new FormData();
+        
+        // Add all files to formData
+        files.forEach((file, index) => {
+          console.log(`Adding file ${index + 1} to merge:`, file.name);
+          formData.append('files', file);
+        });
+        
+        formData.append('action', action);
+        
+        console.log('Sending merge request...');
+        const response = await api.post('/convert', formData, {
+          headers: {
+            'Content-Type': undefined,
+          },
+        });
+        
+        console.log('Merge API response:', response.data);
+        
+        // Update all files with the merge result
+        setFiles(prevFiles => {
+          return prevFiles.map(file => {
+            const baseUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
+            const finalUrl = `${baseUrl}${response.data.download_url}`;
+            
+            return {
+              ...file,
+              status: 'completed' as const,
+              downloadUrl: finalUrl,
+              outputFormat: '.pdf',
+            };
           });
-          
-          console.log('API response:', response.data);
+        });
+        
+      } else {
+        // Convert each file individually (existing logic)
+        const conversionPromises = files.map(async (file) => {
+          try {
+            const formData = new FormData();
+            console.log('File details:', {
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              lastModified: file.lastModified
+            });
+            formData.append('file', file);
+            // Map frontend actions to backend actions
+            const actionMap: Record<string, string> = {
+              'pdf_to_docx': 'pdf_to_word',
+              'docx_to_pdf': 'word_to_pdf',
+              'ppt_to_docx': 'ppt_to_docx',
+              'image_to_pdf': 'image_to_pdf',
+              'merge_pdf': 'merge-pdf',
+              'merge_images': 'merge-images'
+            };
+            
+            console.log('activeTab:', activeTab);
+            console.log('file.action:', file.action);
+            const originalAction = file.action || activeTab.replace(/-/g, '_');
+            const action = actionMap[originalAction] || originalAction;
+            
+            console.log('Original action:', originalAction);
+            console.log('Mapped action:', action);
+            console.log('Available actions:', Object.keys(actionMap));
+            
+            // Ensure we're sending a valid backend action
+            const validActions = ['pdf_to_word', 'word_to_pdf', 'ppt_to_docx', 'image_to_pdf', 'pdf_to_jpeg', 'pdf_to_latex', 'latex_to_pdf', 'merge-pdf', 'merge-images'];
+            const finalAction = validActions.includes(action) ? action : 'pdf_to_word'; // fallback
+            
+            console.log('Final action being sent:', finalAction);
+            formData.append('action', finalAction);
 
-          return {
-            file,
-            success: true,
-            data: response.data,
-          };
-        } catch (error) {
-          console.error('Conversion error for file:', file.name, error);
-          
-          // Type guard for axios error
-          if (error && typeof error === 'object' && 'response' in error) {
-            const axiosError = error as any;
-            console.error('Error response:', axiosError.response?.data);
-            console.error('Error status:', axiosError.response?.status);
+            const response = await api.post('/convert', formData, {
+              headers: {
+                'Content-Type': undefined,
+              },
+            });
+            
+            console.log('API response:', response.data);
+
+            return {
+              file,
+              success: true,
+              data: response.data,
+            };
+          } catch (error) {
+            console.error('Conversion error for file:', file.name, error);
+            
+            // Type guard for axios error
+            if (error && typeof error === 'object' && 'response' in error) {
+              const axiosError = error as any;
+              console.error('Error response:', axiosError.response?.data);
+              console.error('Error status:', axiosError.response?.status);
+              return {
+                file,
+                success: false,
+                error: axiosError.response?.data?.error || (error instanceof Error ? error.message : 'Conversion failed'),
+              };
+            }
+            
             return {
               file,
               success: false,
-              error: axiosError.response?.data?.error || (error instanceof Error ? error.message : 'Conversion failed'),
+              error: error instanceof Error ? error.message : 'Conversion failed',
             };
           }
-          
-          return {
-            file,
-            success: false,
-            error: error instanceof Error ? error.message : 'Conversion failed',
-          };
-        }
-      });
-
-      const results = await Promise.all(conversionPromises);
-      
-      console.log('Conversion results:', results);
-
-      // Update files with conversion results
-      setFiles(prevFiles => {
-        console.log('Previous files state:', prevFiles);
-        const updatedFiles = prevFiles.map(file => {
-          const result = results.find(r => r.file.id === file.id);
-          if (result) {
-            if (result.success) {
-              console.log('Updating file status to completed:', file.name);
-              console.log('Backend download_url:', result.data.download_url);
-              const baseUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
-              const finalUrl = `${baseUrl}${result.data.download_url}`;
-              console.log('Base URL:', baseUrl);
-              console.log('Final download URL:', finalUrl);
-              return {
-                ...file,
-                status: 'completed' as const,
-                downloadUrl: finalUrl,
-                outputFormat: SUPPORTED_FORMATS[activeTab].output,
-              };
-            } else {
-              console.log('Updating file status to error:', file.name);
-              return {
-                ...file,
-                status: 'error' as const,
-                error: result.error,
-              };
-            }
-          }
-          return file;
         });
-        console.log('Updated files state:', updatedFiles);
-        return updatedFiles;
-      });
-      
+
+        const results = await Promise.all(conversionPromises);
+        
+        console.log('Conversion results:', results);
+
+        // Update files with conversion results
+        setFiles(prevFiles => {
+          console.log('Previous files state:', prevFiles);
+          const updatedFiles = prevFiles.map(file => {
+            const result = results.find(r => r.file.id === file.id);
+            if (result) {
+              if (result.success) {
+                console.log('Updating file status to completed:', file.name);
+                console.log('Backend download_url:', result.data.download_url);
+                const baseUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
+                const finalUrl = `${baseUrl}${result.data.download_url}`;
+                console.log('Base URL:', baseUrl);
+                console.log('Final download URL:', finalUrl);
+                return {
+                  ...file,
+                  status: 'completed' as const,
+                  downloadUrl: finalUrl,
+                  outputFormat: SUPPORTED_FORMATS[activeTab].output,
+                };
+              } else {
+                console.log('Updating file status to error:', file.name);
+                return {
+                  ...file,
+                  status: 'error' as const,
+                  error: result.error,
+                };
+              }
+            }
+            return file;
+          });
+          console.log('Updated files state:', updatedFiles);
+          return updatedFiles;
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Conversion failed');
       
