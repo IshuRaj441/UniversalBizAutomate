@@ -18,7 +18,9 @@ import {
   MenuItem, 
   IconButton, 
   Tooltip,
-  styled
+  styled,
+  Chip,
+  Badge
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -89,23 +91,45 @@ const Layout: React.FC = () => {
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
+      <Toolbar sx={{ py: 2 }}>
+        <Typography 
+          variant="h6" 
+          noWrap 
+          component="div" 
+          sx={{ 
+            fontWeight: 'bold',
+            color: '#e2e8f0',
+            fontSize: '1.25rem',
+            letterSpacing: '-0.025em'
+          }}
+        >
           UBA Pro
         </Typography>
       </Toolbar>
-      <Divider />
-      <List>
+      <Divider sx={{ borderColor: '#334155' }} />
+      <List sx={{ py: 1 }}>
         {menuItems.map((item) => (
           <StyledListItem 
             key={item.text} 
             onClick={() => navigate(item.path)}
             selected={location.pathname === item.path}
           >
-            <ListItemIcon sx={{ minWidth: 40 }}>
+            <ListItemIcon sx={{ 
+              minWidth: 40,
+              color: location.pathname === item.path ? '#3b82f6' : '#94a3b8'
+            }}>
               {item.icon}
             </ListItemIcon>
-            <ListItemText primary={item.text} />
+            <ListItemText 
+              primary={item.text}
+              sx={{
+                '& .MuiListItemText-primary': {
+                  color: location.pathname === item.path ? '#ffffff' : '#e2e8f0',
+                  fontWeight: location.pathname === item.path ? 600 : 400,
+                  fontSize: '0.875rem'
+                }
+              }}
+            />
           </StyledListItem>
         ))}
       </List>
@@ -135,20 +159,43 @@ const Layout: React.FC = () => {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {menuItems.find(item => item.path === location.pathname)?.text || 'Dashboard'}
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="body2" sx={{ mr: 2 }}>
-              Credits: {user?.credits || 0}
-            </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Chip
+              label={`${user?.credits || 0} credits`}
+              sx={{
+                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                color: 'white',
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                height: '28px',
+                borderRadius: '14px',
+                '& .MuiChip-label': {
+                  px: 1,
+                }
+              }}
+            />
             <Tooltip title="Account settings">
               <IconButton
                 onClick={handleMenu}
                 size="small"
-                sx={{ ml: 2 }}
+                sx={{ 
+                  ml: 1,
+                  '&:hover': {
+                    background: 'rgba(59,130,246,0.1)'
+                  }
+                }}
                 aria-controls={Boolean(anchorEl) ? 'account-menu' : undefined}
                 aria-haspopup="true"
                 aria-expanded={Boolean(anchorEl) ? 'true' : undefined}
               >
-                <Avatar sx={{ width: 32, height: 32 }}>
+                <Avatar 
+                  sx={{ 
+                    width: 36, 
+                    height: 36,
+                    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                    border: '2px solid #334155'
+                  }}
+                >
                   <AccountCircleIcon />
                 </Avatar>
               </IconButton>
@@ -220,10 +267,12 @@ const Layout: React.FC = () => {
           flexGrow: 1,
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: 8, // AppBar height
+          mt: 8,
+          minHeight: '100vh',
+          background: '#0f172a'
         }}
       >
-        <Container maxWidth="lg">
+        <Container maxWidth="xl" sx={{ py: 2 }}>
           <Outlet />
         </Container>
       </Box>

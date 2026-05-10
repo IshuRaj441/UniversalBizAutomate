@@ -18,28 +18,152 @@ const AdminPanel = lazy(() => import('./pages/admin/AdminPanel'));
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
 
-// Create a theme instance
+// Create dark theme instance
 const theme = createTheme({
   palette: {
+    mode: 'dark',
     primary: {
-      main: '#1976d2',
+      main: '#3b82f6',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#22c55e',
+    },
+    error: {
+      main: '#ef4444',
     },
     background: {
-      default: '#f5f5f5',
+      default: '#0f172a',
+      paper: '#1e293b',
     },
+    text: {
+      primary: '#e2e8f0',
+      secondary: '#94a3b8',
+    },
+    divider: '#334155',
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
       fontSize: '2.5rem',
-      fontWeight: 500,
+      fontWeight: 600,
     },
     h2: {
       fontSize: '2rem',
-      fontWeight: 500,
+      fontWeight: 600,
+    },
+    h4: {
+      fontSize: '1.5rem',
+      fontWeight: 600,
+    },
+    h6: {
+      fontSize: '1.125rem',
+      fontWeight: 600,
+    },
+    body1: {
+      fontSize: '0.875rem',
+    },
+    body2: {
+      fontSize: '0.875rem',
+      color: '#94a3b8',
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 10,
+          textTransform: 'none',
+          fontWeight: 600,
+          padding: '10px 18px',
+          transition: 'all 0.2s ease',
+        },
+        containedPrimary: {
+          background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+          '&:hover': {
+            transform: 'translateY(-1px)',
+            boxShadow: '0 6px 20px rgba(59,130,246,0.3)',
+          },
+        },
+        outlined: {
+          borderColor: '#334155',
+          color: '#e2e8f0',
+          '&:hover': {
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59,130,246,0.1)',
+          },
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          background: '#1e293b',
+          border: '1px solid #334155',
+          borderRadius: 16,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiInputBase-root': {
+            background: '#020617',
+            border: '1px solid #334155',
+            borderRadius: 10,
+            padding: '12px',
+            color: '#e2e8f0',
+            '&:hover': {
+              borderColor: '#475569',
+            },
+            '&.Mui-focused': {
+              borderColor: '#3b82f6',
+              boxShadow: '0 0 0 2px rgba(59,130,246,0.2)',
+            },
+          },
+          '& .MuiInputLabel-root': {
+            color: '#94a3b8',
+          },
+          '& .MuiOutlinedInput-notchedOutline': {
+            border: 'none',
+          },
+        },
+      },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          background: '#020617',
+          borderRight: '1px solid #1e293b',
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          background: '#020617',
+          borderBottom: '1px solid #1e293b',
+          boxShadow: 'none',
+        },
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          margin: '4px 8px',
+          '&.Mui-selected': {
+            background: '#1e293b',
+            color: '#ffffff',
+            '&:hover': {
+              background: '#334155',
+            },
+          },
+          '&:hover': {
+            background: 'rgba(30,41,59,0.5)',
+          },
+        },
+      },
     },
   },
 });

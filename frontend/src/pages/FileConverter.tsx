@@ -3,12 +3,10 @@ import { useDropzone } from 'react-dropzone';
 import {
   Box,
   Typography,
-  Paper,
   Button,
   Grid,
   Card,
   CardContent,
-  CardActions,
   Divider,
   CircularProgress,
   Alert,
@@ -478,11 +476,28 @@ const FileConverter: React.FC = () => {
     : currentFormat.input;
 
   return (
-    <Box>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Box sx={{ py: 3 }}>
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        gutterBottom
+        sx={{
+          fontWeight: 600,
+          color: '#e2e8f0',
+          mb: 2
+        }}
+      >
         File Converter
       </Typography>
-      <Typography variant="body1" color="textSecondary" paragraph>
+      <Typography 
+        variant="body1" 
+        color="textSecondary" 
+        paragraph
+        sx={{
+          color: '#94a3b8',
+          mb: 4
+        }}
+      >
         Convert between different file formats quickly and easily.
       </Typography>
 
@@ -513,32 +528,56 @@ const FileConverter: React.FC = () => {
       </Grid>
 
       {/* File Upload Area */}
-      <Paper
+      <Card
         {...getRootProps()}
-        elevation={3}
+        elevation={0}
         sx={{
           p: 4,
           mb: 4,
           border: '2px dashed',
-          borderColor: isDragActive ? 'primary.main' : 'divider',
-          backgroundColor: isDragActive ? 'action.hover' : 'background.paper',
+          borderColor: isDragActive ? '#3b82f6' : '#334155',
+          background: isDragActive 
+            ? 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.1))'
+            : 'linear-gradient(135deg, #1e293b, #0f172a)',
           cursor: 'pointer',
-          transition: 'all 0.2s ease-in-out',
+          transition: 'all 0.3s ease',
           textAlign: 'center',
+          borderRadius: 3,
+          '&:hover': {
+            borderColor: '#3b82f6',
+            background: 'linear-gradient(135deg, rgba(59,130,246,0.05), rgba(37,99,235,0.05))',
+            transform: 'translateY(-2px)'
+          }
         }}
       >
         <input {...getInputProps()} ref={fileInputRef} />
-        <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-        <Typography variant="h6" gutterBottom>
+        <CloudUploadIcon sx={{ fontSize: 64, color: '#3b82f6', mb: 3, opacity: 0.8 }} />
+        <Typography 
+          variant="h6" 
+          gutterBottom
+          sx={{
+            color: '#e2e8f0',
+            fontWeight: 600,
+            mb: 2
+          }}
+        >
           {isDragActive ? 'Drop the files here' : 'Drag & drop files here, or click to select files'}
         </Typography>
-        <Typography variant="body2" color="textSecondary" paragraph>
+        <Typography 
+          variant="body2" 
+          color="textSecondary" 
+          paragraph
+          sx={{
+            color: '#94a3b8',
+            mb: 3
+          }}
+        >
           Supported formats: {acceptedFiles.toUpperCase()}
         </Typography>
         <Button variant="contained" color="primary" onClick={() => fileInputRef.current?.click()}>
           Select Files
         </Button>
-      </Paper>
+      </Card>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -548,10 +587,24 @@ const FileConverter: React.FC = () => {
 
       {/* File List */}
       {files.length > 0 && (
-        <Card elevation={3} sx={{ mb: 4 }}>
+        <Card 
+          elevation={0} 
+          sx={{ 
+            mb: 4,
+            background: '#1e293b',
+            border: '1px solid #334155',
+            borderRadius: 3
+          }}
+        >
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6">
+              <Typography 
+                variant="h6"
+                sx={{
+                  color: '#e2e8f0',
+                  fontWeight: 600
+                }}
+              >
                 {files.length} {files.length === 1 ? 'File' : 'Files'} to Convert
               </Typography>
               <Button
@@ -667,37 +720,79 @@ const FileConverter: React.FC = () => {
       )}
 
       {/* Conversion Tips */}
-      <Card elevation={3}>
+      <Card 
+        elevation={0}
+        sx={{
+          background: '#1e293b',
+          border: '1px solid #334155',
+          borderRadius: 3
+        }}
+      >
         <CardContent>
-          <Typography variant="h6" gutterBottom>
+          <Typography 
+            variant="h6" 
+            gutterBottom
+            sx={{
+              color: '#e2e8f0',
+              fontWeight: 600,
+              mb: 3
+            }}
+          >
             Conversion Tips
           </Typography>
           <List>
             <ListItem>
               <ListItemIcon>
-                <CheckCircleIcon color="primary" />
+                <CheckCircleIcon sx={{ color: '#22c55e' }} />
               </ListItemIcon>
               <ListItemText 
                 primary="High Quality Conversions" 
                 secondary="Our conversion engine ensures your files maintain the highest possible quality."
+                sx={{
+                  '& .MuiListItemText-primary': {
+                    color: '#e2e8f0',
+                    fontWeight: 500
+                  },
+                  '& .MuiListItemText-secondary': {
+                    color: '#94a3b8'
+                  }
+                }}
               />
             </ListItem>
             <ListItem>
               <ListItemIcon>
-                <CheckCircleIcon color="primary" />
+                <CheckCircleIcon sx={{ color: '#22c55e' }} />
               </ListItemIcon>
               <ListItemText 
                 primary="Secure & Private" 
                 secondary="Your files are automatically deleted from our servers after conversion."
+                sx={{
+                  '& .MuiListItemText-primary': {
+                    color: '#e2e8f0',
+                    fontWeight: 500
+                  },
+                  '& .MuiListItemText-secondary': {
+                    color: '#94a3b8'
+                  }
+                }}
               />
             </ListItem>
             <ListItem>
               <ListItemIcon>
-                <CheckCircleIcon color="primary" />
+                <CheckCircleIcon sx={{ color: '#22c55e' }} />
               </ListItemIcon>
               <ListItemText 
                 primary="No Watermarks" 
                 secondary="Converted files are free of watermarks or any other limitations."
+                sx={{
+                  '& .MuiListItemText-primary': {
+                    color: '#e2e8f0',
+                    fontWeight: 500
+                  },
+                  '& .MuiListItemText-secondary': {
+                    color: '#94a3b8'
+                  }
+                }}
               />
             </ListItem>
           </List>

@@ -1,0 +1,51 @@
+services:
+  # Backend API Service
+  - type: web
+    name: universal-biz-automat-api
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: universal-biz-automat-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://universal-biz-automat.onrender.com,https://universal-biz-automat-frontend.onrender.com
+    disk:
+      name: uploads
+      mountPath: /app/uploads
+      sizeGB: 10
+    disk:
+      name: outputs
+      mountPath: /app/outputs
+      sizeGB: 10
+
+  # Frontend Service
+  - type: web
+    name: universal-biz-automat-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    publishPath: frontend/build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://universal-biz-automat-api.onrender.com
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://universal-biz-automat-api.onrender.com/api/*
+      - type: rewrite
+        source: /auth/*
+        destination: https://universal-biz-automat-api.onrender.com/auth/*
+
+  # PostgreSQL Database
+  - type: pserv
+    name: universal-biz-automat-db
+    databaseName: universalbizautomat
+    user: universalbiz
+    plan: free

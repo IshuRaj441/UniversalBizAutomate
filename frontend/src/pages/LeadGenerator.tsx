@@ -6,11 +6,9 @@ import {
   Typography,
   TextField,
   Button,
-  Paper,
   Grid,
   Card,
   CardContent,
-  CardActions,
   Divider,
   CircularProgress,
   Alert,
@@ -148,15 +146,41 @@ const LeadGenerator: React.FC = () => {
   };
 
   return (
-    <Box>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Box sx={{ py: 3 }}>
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        gutterBottom
+        sx={{
+          fontWeight: 600,
+          color: '#e2e8f0',
+          mb: 2
+        }}
+      >
         Lead Generator
       </Typography>
-      <Typography variant="body1" color="textSecondary" paragraph>
+      <Typography 
+        variant="body1" 
+        color="textSecondary" 
+        paragraph
+        sx={{
+          color: '#94a3b8',
+          mb: 4
+        }}
+      >
         Generate targeted business leads by industry, location, and keywords.
       </Typography>
 
-      <Paper sx={{ p: 3, mb: 4 }} elevation={3}>
+      <Card 
+        elevation={0}
+        sx={{ 
+          p: 3, 
+          mb: 4,
+          background: '#1e293b',
+          border: '1px solid #334155',
+          borderRadius: 3
+        }}
+      >
         <form onSubmit={formik.handleSubmit}>
           <Grid container spacing={3}>
             <Grid item xs={12} md={4}>
@@ -214,7 +238,7 @@ const LeadGenerator: React.FC = () => {
             </Grid>
           </Grid>
         </form>
-      </Paper>
+      </Card>
 
       {error && (
         <Alert severity="error" sx={{ mb: 4 }}>
@@ -238,31 +262,58 @@ const LeadGenerator: React.FC = () => {
             </Button>
           </Box>
           
-          <TableContainer component={Paper} elevation={3}>
+          <TableContainer 
+            component={Card} 
+            elevation={0}
+            sx={{
+              background: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: 3
+            }}
+          >
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell>Business</TableCell>
-                  <TableCell>Contact</TableCell>
-                  <TableCell>Location</TableCell>
-                  <TableCell>Rating</TableCell>
-                  <TableCell>Actions</TableCell>
+                <TableRow sx={{ background: '#0f172a' }}>
+                  <TableCell sx={{ color: '#e2e8f0', fontWeight: 600, borderColor: '#334155' }}>Business</TableCell>
+                  <TableCell sx={{ color: '#e2e8f0', fontWeight: 600, borderColor: '#334155' }}>Contact</TableCell>
+                  <TableCell sx={{ color: '#e2e8f0', fontWeight: 600, borderColor: '#334155' }}>Location</TableCell>
+                  <TableCell sx={{ color: '#e2e8f0', fontWeight: 600, borderColor: '#334155' }}>Rating</TableCell>
+                  <TableCell sx={{ color: '#e2e8f0', fontWeight: 600, borderColor: '#334155' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {leads.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((lead) => (
-                  <TableRow key={lead.id} hover>
+                  <TableRow 
+                    key={lead.id} 
+                    hover
+                    sx={{ 
+                      '&:hover': {
+                        background: 'rgba(59,130,246,0.05)'
+                      },
+                      borderColor: '#334155'
+                    }}
+                  >
                     <TableCell>
                       <Box display="flex" alignItems="center">
-                        <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                        <Avatar sx={{ 
+                          bgcolor: 'linear-gradient(135deg, #3b82f6, #2563eb)', 
+                          mr: 2,
+                          border: '2px solid #334155'
+                        }}>
                           <BusinessIcon />
                         </Avatar>
                         <Box>
-                          <Typography variant="subtitle1">{lead.name}</Typography>
+                          <Typography variant="subtitle1" sx={{ color: '#e2e8f0', fontWeight: 600 }}>{lead.name}</Typography>
                           <Chip 
                             label={lead.industry} 
                             size="small" 
-                            sx={{ mt: 0.5 }}
+                            sx={{ 
+                              mt: 0.5,
+                              background: 'rgba(59,130,246,0.1)',
+                              color: '#3b82f6',
+                              border: '1px solid rgba(59,130,246,0.3)',
+                              fontWeight: 500
+                            }}
                           />
                         </Box>
                       </Box>
@@ -272,13 +323,13 @@ const LeadGenerator: React.FC = () => {
                         {lead.email && (
                           <Box display="flex" alignItems="center" mb={0.5}>
                             <EmailIcon color="action" fontSize="small" sx={{ mr: 1 }} />
-                            <Typography variant="body2">{lead.email}</Typography>
+                            <Typography variant="body2" sx={{ color: '#94a3b8' }}>{lead.email}</Typography>
                           </Box>
                         )}
                         {lead.phone && (
                           <Box display="flex" alignItems="center">
                             <PhoneIcon color="action" fontSize="small" sx={{ mr: 1 }} />
-                            <Typography variant="body2">{lead.phone}</Typography>
+                            <Typography variant="body2" sx={{ color: '#94a3b8' }}>{lead.phone}</Typography>
                           </Box>
                         )}
                       </Box>
@@ -286,13 +337,13 @@ const LeadGenerator: React.FC = () => {
                     <TableCell>
                       <Box display="flex" alignItems="center">
                         <LocationIcon color="action" fontSize="small" sx={{ mr: 1 }} />
-                        <Typography variant="body2">{lead.address}</Typography>
+                        <Typography variant="body2" sx={{ color: '#94a3b8' }}>{lead.address}</Typography>
                       </Box>
                     </TableCell>
                     <TableCell>
                       <Box display="flex" alignItems="center">
                         {renderRating(lead.rating)}
-                        <Typography variant="body2" sx={{ ml: 1 }}>({lead.rating}.0)</Typography>
+                        <Typography variant="body2" sx={{ ml: 1, color: '#94a3b8' }}>({lead.rating}.0)</Typography>
                       </Box>
                     </TableCell>
                     <TableCell>
@@ -338,25 +389,68 @@ const LeadGenerator: React.FC = () => {
       )}
 
       {leads.length === 0 && !isLoading && (
-        <Paper 
-          elevation={3} 
+        <Card 
+          elevation={0}
           sx={{ 
-            p: 4, 
+            p: 6, 
             textAlign: 'center',
-            background: 'linear-gradient(45deg, #f5f7fa 0%, #e8ecf1 100%)',
+            background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+            border: '1px solid #334155',
+            borderRadius: 3,
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              borderColor: '#3b82f6'
+            }
           }}
         >
-          <BusinessIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.6 }} />
-          <Typography variant="h6" color="textSecondary" gutterBottom>
+          <Avatar 
+            sx={{ 
+              fontSize: 64, 
+              width: 120, 
+              height: 120, 
+              mb: 3, 
+              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+              mx: 'auto'
+            }}
+          >
+            <BusinessIcon sx={{ fontSize: 64 }} />
+          </Avatar>
+          <Typography 
+            variant="h6" 
+            color="textSecondary" 
+            gutterBottom
+            sx={{
+              color: '#e2e8f0',
+              fontWeight: 600,
+              mb: 2
+            }}
+          >
             No leads generated yet
           </Typography>
-          <Typography variant="body1" color="textSecondary" paragraph>
+          <Typography 
+            variant="body1" 
+            color="textSecondary" 
+            paragraph
+            sx={{
+              color: '#94a3b8',
+              mb: 2,
+              fontSize: '1rem'
+            }}
+          >
             Enter your search criteria above to find potential business leads.
           </Typography>
-          <Typography variant="body2" color="textSecondary">
-            Tip: Be specific with your keywords for more relevant results.
+          <Typography 
+            variant="body2" 
+            color="textSecondary"
+            sx={{
+              color: '#64748b',
+              fontSize: '0.875rem'
+            }}
+          >
+            💡 Tip: Be specific with your keywords for more relevant results.
           </Typography>
-        </Paper>
+        </Card>
       )}
     </Box>
   );
